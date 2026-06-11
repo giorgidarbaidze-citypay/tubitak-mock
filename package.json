@@ -1,0 +1,31 @@
+{
+  "name": "tubitak-api-sandbox",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "rm -rf ./dist && tsc --build",
+    "start": "ts-node-dev -r dotenv/config src/app.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^12.10.0",
+    "dotenv": "^17.4.2",
+    "eciesjs": "^0.5.0",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mockserver-client": "^7.0.0",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^1.0.0",
+    "typescript": "^6.0.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.4.1",
+    "globals": "^17.6.0",
+    "ts-node-dev": "^2.0.0"
+  }
+}
