@@ -6,11 +6,12 @@ module.exports = {
   apps: [
     {
       cwd: ".",
+      name: "tubitak-mock-api",
       script: "./dist/app.js",
-      watch: ".",
-      name: "node-server-prod",
       node_args: "-r dotenv/config",
       args: "dotenv_config_path=./.env",
+      watch: ["dist"],
+      ignore_watch: ["node_modules"],
     },
   ],
 };
