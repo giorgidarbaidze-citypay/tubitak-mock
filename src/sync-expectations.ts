@@ -6,21 +6,26 @@ import {
   MOCK_SERVER_PORT,
 } from "./constants";
 
-const client = mockServer.mockServerClient(MOCK_SERVER_HOST, MOCK_SERVER_PORT);
+const client =
+  MOCK_SERVER_HOST && MOCK_SERVER_PORT
+    ? mockServer.mockServerClient(MOCK_SERVER_HOST, MOCK_SERVER_PORT)
+    : null;
 
 export async function syncMockExpectations() {
-  await client.reset().then(() => {
-    client.mockAnyResponse({
-      httpRequest: {
-        path: "/.*",
-      },
-      httpForward: {
-        host: EXPRESS_HOST,
-        port: EXPRESS_PORT,
-        scheme: "HTTP",
-      },
+  if (client) {
+    await client.reset().then(() => {
+      client.mockAnyResponse({
+        httpRequest: {
+          path: "/.*",
+        },
+        httpForward: {
+          host: EXPRESS_HOST,
+          port: EXPRESS_PORT,
+          scheme: "HTTP",
+        },
+      });
     });
-  });
 
-  console.log("Expectations synched");
+    console.log("Expectations synched");
+  }
 }
