@@ -135,31 +135,25 @@ router.post("/api/auth/login", async (req, res) => {
     ]);
   }
 
-  try {
-    const user = await userRepository.findOneBy({ username, password });
-    if (!user) {
-      return sendErrorResponse(res, 401, [
-        {
-          code: "403",
-          message: "Forbidden: Access code is empty/invalid/unsuccessful.",
-          type: "ERROR",
-        },
-      ]);
-    }
-
-    const accessToken = jwt.sign({ sub: user.username }, JWT_SECRET, {
-      expiresIn: TOKEN_EXPIRY,
-    });
-    return res.status(200).json({
-      access_token: accessToken,
-      token_type: "Bearer",
-      expires_in: 300,
-    });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
+  const user = await userRepository.findOneBy({ username, password });
+  if (!user) {
+    return sendErrorResponse(res, 401, [
+      {
+        code: "403",
+        message: "Forbidden: Access code is empty/invalid/unsuccessful.",
+        type: "ERROR",
+      },
     ]);
   }
+
+  const accessToken = jwt.sign({ sub: user.username }, JWT_SECRET, {
+    expiresIn: TOKEN_EXPIRY,
+  });
+  return res.status(200).json({
+    access_token: accessToken,
+    token_type: "Bearer",
+    expires_in: 300,
+  });
 });
 
 // ==========================================
@@ -263,252 +257,223 @@ router.post(
 // CONFIRM/ACK - Wallet ownership verified
 router.post("/api/v1/ktdm/tr/confirm", authenticateToken, async (req, res) => {
   const { id } = req.body;
-  try {
-    const tr = await travelRuleRepository.findOneBy({ id });
-    if (!tr) {
-      return sendErrorResponse(res, 404, [
-        {
-          code: "9910",
-          message: "Travel Rule not found",
-          type: "TravelRuleNotFoundExcepiton",
-        },
-      ]);
-    }
-    if (tr.status !== "NEW" && tr.status !== "NOT_READY") {
-      return sendErrorResponse(res, 400, [
-        {
-          code: "9912",
-          message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
-          type: "TravelRuleCanNotBeUpdatedException",
-        },
-      ]);
-    }
 
-    tr.status = "ACKNOWLEDGED";
-    await travelRuleRepository.save(tr);
-
-    await saveStatusHistory(id, "ACKNOWLEDGED", "CONFIRM_RECEIVED");
-    await saveStatusHistory(
-      id,
-      "ACKNOWLEDGED",
-      "CONFIRM_QUEUED_FOR_FORWARDING",
-    );
-
-    return sendTubitakResponse(res, 200, {
-      message: {
-        code: "00",
-        message: "Travel Rule Status Update completed.",
-        type: "SUCCESS",
+  const tr = await travelRuleRepository.findOneBy({ id });
+  if (!tr) {
+    return sendErrorResponse(res, 404, [
+      {
+        code: "9910",
+        message: "Travel Rule not found",
+        type: "TravelRuleNotFoundExcepiton",
       },
-      status: "ACKNOWLEDGED",
-      transactionType: "TRAVELRULE",
-      id,
-    });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
     ]);
   }
+  if (tr.status !== "NEW" && tr.status !== "NOT_READY") {
+    return sendErrorResponse(res, 400, [
+      {
+        code: "9912",
+        message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
+        type: "TravelRuleCanNotBeUpdatedException",
+      },
+    ]);
+  }
+
+  tr.status = "ACKNOWLEDGED";
+  await travelRuleRepository.save(tr);
+
+  await saveStatusHistory(id, "ACKNOWLEDGED", "CONFIRM_RECEIVED");
+  await saveStatusHistory(id, "ACKNOWLEDGED", "CONFIRM_QUEUED_FOR_FORWARDING");
+
+  return sendTubitakResponse(res, 200, {
+    message: {
+      code: "00",
+      message: "Travel Rule Status Update completed.",
+      type: "SUCCESS",
+    },
+    status: "ACKNOWLEDGED",
+    transactionType: "TRAVELRULE",
+    id,
+  });
 });
 
 // ACCEPTED - AML checks passed
 router.post("/api/v1/ktdm/tr/accept", authenticateToken, async (req, res) => {
   const { id } = req.body;
-  try {
-    const tr = await travelRuleRepository.findOneBy({ id });
-    if (!tr) {
-      return sendErrorResponse(res, 404, [
-        {
-          code: "9910",
-          message: "Travel Rule not found",
-          type: "TravelRuleNotFoundExcepiton",
-        },
-      ]);
-    }
-    if (
-      tr.status !== "NEW" &&
-      tr.status !== "ACKNOWLEDGED" &&
-      tr.status !== "NOT_READY"
-    ) {
-      return sendErrorResponse(res, 400, [
-        {
-          code: "9912",
-          message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
-          type: "TravelRuleCanNotBeUpdatedException",
-        },
-      ]);
-    }
 
-    tr.status = "ACCEPTED";
-    await travelRuleRepository.save(tr);
-
-    await saveStatusHistory(id, "ACCEPTED", "ACCEPT_RECEIVED");
-    await saveStatusHistory(id, "ACCEPTED", "ACCEPT_QUEUED_FOR_FORWARDING");
-
-    return sendTubitakResponse(res, 200, {
-      message: {
-        code: "00",
-        message: "Travel Rule Status Update completed.",
-        type: "SUCCESS",
+  const tr = await travelRuleRepository.findOneBy({ id });
+  if (!tr) {
+    return sendErrorResponse(res, 404, [
+      {
+        code: "9910",
+        message: "Travel Rule not found",
+        type: "TravelRuleNotFoundExcepiton",
       },
-      status: "ACCEPTED",
-      transactionType: "TRAVELRULE",
-      id,
-    });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
     ]);
   }
+  if (
+    tr.status !== "NEW" &&
+    tr.status !== "ACKNOWLEDGED" &&
+    tr.status !== "NOT_READY"
+  ) {
+    return sendErrorResponse(res, 400, [
+      {
+        code: "9912",
+        message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
+        type: "TravelRuleCanNotBeUpdatedException",
+      },
+    ]);
+  }
+
+  tr.status = "ACCEPTED";
+  await travelRuleRepository.save(tr);
+
+  await saveStatusHistory(id, "ACCEPTED", "ACCEPT_RECEIVED");
+  await saveStatusHistory(id, "ACCEPTED", "ACCEPT_QUEUED_FOR_FORWARDING");
+
+  return sendTubitakResponse(res, 200, {
+    message: {
+      code: "00",
+      message: "Travel Rule Status Update completed.",
+      type: "SUCCESS",
+    },
+    status: "ACCEPTED",
+    transactionType: "TRAVELRULE",
+    id,
+  });
 });
 
 // REJECTED - Wallet doesn't belong to beneficiary VASP
 router.post("/api/v1/ktdm/tr/reject", authenticateToken, async (req, res) => {
   const { id, reason } = req.body;
-  try {
-    const tr = await travelRuleRepository.findOneBy({ id });
-    if (!tr) {
-      return sendErrorResponse(res, 404, [
-        {
-          code: "9910",
-          message: "Travel Rule not found",
-          type: "TravelRuleNotFoundExcepiton",
-        },
-      ]);
-    }
-    if (
-      tr.status !== "NEW" &&
-      tr.status !== "ACKNOWLEDGED" &&
-      tr.status !== "NOT_READY"
-    ) {
-      return sendErrorResponse(res, 400, [
-        {
-          code: "9912",
-          message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
-          type: "TravelRuleCanNotBeUpdatedException",
-        },
-      ]);
-    }
 
-    tr.status = "REJECTED";
-    await travelRuleRepository.save(tr);
-
-    await saveStatusHistory(id, "REJECTED", "REJECT_RECEIVED");
-    await saveStatusHistory(id, "REJECTED", "REJECT_QUEUED_FOR_FORWARDING");
-
-    return sendTubitakResponse(res, 200, {
-      message: {
-        code: "00",
-        message: "Travel Rule Status Update completed.",
-        type: "SUCCESS",
+  const tr = await travelRuleRepository.findOneBy({ id });
+  if (!tr) {
+    return sendErrorResponse(res, 404, [
+      {
+        code: "9910",
+        message: "Travel Rule not found",
+        type: "TravelRuleNotFoundExcepiton",
       },
-      status: "REJECTED",
-      transactionType: "TRAVELRULE",
-      id,
-    });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
     ]);
   }
+  if (
+    tr.status !== "NEW" &&
+    tr.status !== "ACKNOWLEDGED" &&
+    tr.status !== "NOT_READY"
+  ) {
+    return sendErrorResponse(res, 400, [
+      {
+        code: "9912",
+        message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
+        type: "TravelRuleCanNotBeUpdatedException",
+      },
+    ]);
+  }
+
+  tr.status = "REJECTED";
+  await travelRuleRepository.save(tr);
+
+  await saveStatusHistory(id, "REJECTED", "REJECT_RECEIVED");
+  await saveStatusHistory(id, "REJECTED", "REJECT_QUEUED_FOR_FORWARDING");
+
+  return sendTubitakResponse(res, 200, {
+    message: {
+      code: "00",
+      message: "Travel Rule Status Update completed.",
+      type: "SUCCESS",
+    },
+    status: "REJECTED",
+    transactionType: "TRAVELRULE",
+    id,
+  });
 });
 
 // DECLINED - AML checks failed
 router.post("/api/v1/ktdm/tr/decline", authenticateToken, async (req, res) => {
   const { id, reason } = req.body;
-  try {
-    const tr = await travelRuleRepository.findOneBy({ id });
-    if (!tr) {
-      return sendErrorResponse(res, 404, [
-        {
-          code: "9910",
-          message: "Travel Rule not found",
-          type: "TravelRuleNotFoundExcepiton",
-        },
-      ]);
-    }
-    if (
-      tr.status !== "NEW" &&
-      tr.status !== "ACKNOWLEDGED" &&
-      tr.status !== "NOT_READY"
-    ) {
-      return sendErrorResponse(res, 400, [
-        {
-          code: "9912",
-          message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
-          type: "TravelRuleCanNotBeUpdatedException",
-        },
-      ]);
-    }
 
-    tr.status = "DECLINED";
-    await travelRuleRepository.save(tr);
-
-    await saveStatusHistory(id, "DECLINED", "DECLINE_RECEIVED");
-    await saveStatusHistory(id, "DECLINED", "DECLINE_QUEUED_FOR_FORWARDING");
-
-    return sendTubitakResponse(res, 200, {
-      message: {
-        code: "00",
-        message: "Travel Rule Status Update completed.",
-        type: "SUCCESS",
+  const tr = await travelRuleRepository.findOneBy({ id });
+  if (!tr) {
+    return sendErrorResponse(res, 404, [
+      {
+        code: "9910",
+        message: "Travel Rule not found",
+        type: "TravelRuleNotFoundExcepiton",
       },
-      status: "DECLINED",
-      transactionType: "TRAVELRULE",
-      id,
-    });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
     ]);
   }
+  if (
+    tr.status !== "NEW" &&
+    tr.status !== "ACKNOWLEDGED" &&
+    tr.status !== "NOT_READY"
+  ) {
+    return sendErrorResponse(res, 400, [
+      {
+        code: "9912",
+        message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
+        type: "TravelRuleCanNotBeUpdatedException",
+      },
+    ]);
+  }
+
+  tr.status = "DECLINED";
+  await travelRuleRepository.save(tr);
+
+  await saveStatusHistory(id, "DECLINED", "DECLINE_RECEIVED");
+  await saveStatusHistory(id, "DECLINED", "DECLINE_QUEUED_FOR_FORWARDING");
+
+  return sendTubitakResponse(res, 200, {
+    message: {
+      code: "00",
+      message: "Travel Rule Status Update completed.",
+      type: "SUCCESS",
+    },
+    status: "DECLINED",
+    transactionType: "TRAVELRULE",
+    id,
+  });
 });
 
 // NOT_READY - Beneficiary VASP not ready to respond
 router.post("/api/v1/ktdm/tr/notready", authenticateToken, async (req, res) => {
   const { id } = req.body;
-  try {
-    const tr = await travelRuleRepository.findOneBy({ id });
-    if (!tr) {
-      return sendErrorResponse(res, 404, [
-        {
-          code: "9910",
-          message: "Travel Rule not found",
-          type: "TravelRuleNotFoundExcepiton",
-        },
-      ]);
-    }
-    if (tr.status !== "NEW") {
-      return sendErrorResponse(res, 400, [
-        {
-          code: "9912",
-          message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
-          type: "TravelRuleCanNotBeUpdatedException",
-        },
-      ]);
-    }
 
-    tr.status = "NOT_READY";
-    await travelRuleRepository.save(tr);
-
-    await saveStatusHistory(id, "NOT_READY", "NOTREADY_RECEIVED");
-    await saveStatusHistory(id, "NOT_READY", "NOTREADY_QUEUED_FOR_FORWARDING");
-
-    return sendTubitakResponse(res, 200, {
-      message: {
-        code: "00",
-        message: "Travel Rule Status Update completed.",
-        type: "SUCCESS",
+  const tr = await travelRuleRepository.findOneBy({ id });
+  if (!tr) {
+    return sendErrorResponse(res, 404, [
+      {
+        code: "9910",
+        message: "Travel Rule not found",
+        type: "TravelRuleNotFoundExcepiton",
       },
-      status: "NOT_READY",
-      transactionType: "TRAVELRULE",
-      id,
-    });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
     ]);
   }
+  if (tr.status !== "NEW") {
+    return sendErrorResponse(res, 400, [
+      {
+        code: "9912",
+        message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
+        type: "TravelRuleCanNotBeUpdatedException",
+      },
+    ]);
+  }
+
+  tr.status = "NOT_READY";
+  await travelRuleRepository.save(tr);
+
+  await saveStatusHistory(id, "NOT_READY", "NOTREADY_RECEIVED");
+  await saveStatusHistory(id, "NOT_READY", "NOTREADY_QUEUED_FOR_FORWARDING");
+
+  return sendTubitakResponse(res, 200, {
+    message: {
+      code: "00",
+      message: "Travel Rule Status Update completed.",
+      type: "SUCCESS",
+    },
+    status: "NOT_READY",
+    transactionType: "TRAVELRULE",
+    id,
+  });
 });
 
 // ==========================================
@@ -526,73 +491,61 @@ router.post("/api/v1/ktdm/tr/update", authenticateToken, async (req, res) => {
     ]);
   }
 
-  try {
-    const tr = await travelRuleRepository.findOneBy({ id });
-    if (!tr) {
-      return sendErrorResponse(res, 404, [
-        {
-          code: "9910",
-          message: "Travel Rule not found",
-          type: "TravelRuleNotFoundExcepiton",
-        },
-      ]);
-    }
-    if (tr.status !== "ACCEPTED") {
-      return sendErrorResponse(res, 400, [
-        {
-          code: "9912",
-          message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
-          type: "TravelRuleCanNotBeUpdatedException",
-        },
-      ]);
-    }
-
-    tr.txHash = txHash;
-    await travelRuleRepository.save(tr);
-
-    await saveStatusHistory(id, tr.status, "UPDATE_RECEIVED");
-    await saveStatusHistory(id, tr.status, "UPDATE_QUEUED_FOR_FORWARDING");
-
-    return sendTubitakResponse(res, 200, {
-      message: {
-        code: "00",
-        message: "Travel Rule Blockchain txHash Update completed.",
-        type: "SUCCESS",
+  const tr = await travelRuleRepository.findOneBy({ id });
+  if (!tr) {
+    return sendErrorResponse(res, 404, [
+      {
+        code: "9910",
+        message: "Travel Rule not found",
+        type: "TravelRuleNotFoundExcepiton",
       },
-      status: tr.status,
-      transactionType: "TRAVELRULE",
-      id,
-    });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
     ]);
   }
+  if (tr.status !== "ACCEPTED") {
+    return sendErrorResponse(res, 400, [
+      {
+        code: "9912",
+        message: `Travel Rule status can not be updated because its current status is '${tr.status}'.`,
+        type: "TravelRuleCanNotBeUpdatedException",
+      },
+    ]);
+  }
+
+  tr.txHash = txHash;
+  await travelRuleRepository.save(tr);
+
+  await saveStatusHistory(id, tr.status, "UPDATE_RECEIVED");
+  await saveStatusHistory(id, tr.status, "UPDATE_QUEUED_FOR_FORWARDING");
+
+  return sendTubitakResponse(res, 200, {
+    message: {
+      code: "00",
+      message: "Travel Rule Blockchain txHash Update completed.",
+      type: "SUCCESS",
+    },
+    status: tr.status,
+    transactionType: "TRAVELRULE",
+    id,
+  });
 });
 
 // ==========================================
 // 5. RETRIEVING THE LIST OF VASP
 // ==========================================
 router.get("/api/v1/ktdm/tr/vasp-list", authenticateToken, async (req, res) => {
-  try {
-    const list = await vaspRepository.find();
-    const vaspList = list.map((v) => ({
-      vaspCode: v.vaspCode,
-      vaspName: v.vaspName,
-    }));
-    return res.status(200).json({
-      message: {
-        message: `${list.length} adet tanımlı KVHS bulunmaktadır.`,
-        type: "INFO",
-      },
-      messages: null,
-      vaspList,
-    });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
-    ]);
-  }
+  const list = await vaspRepository.find();
+  const vaspList = list.map((v) => ({
+    vaspCode: v.vaspCode,
+    vaspName: v.vaspName,
+  }));
+  return res.status(200).json({
+    message: {
+      message: `${list.length} adet tanımlı KVHS bulunmaktadır.`,
+      type: "INFO",
+    },
+    messages: null,
+    vaspList,
+  });
 });
 
 // ==========================================
@@ -610,34 +563,28 @@ router.get("/api/v1/ktdm/tr/vasp-cert", authenticateToken, async (req, res) => {
     ]);
   }
 
-  try {
-    const vasp = await vaspRepository.findOneBy({ vaspDID });
-    if (!vasp) {
-      return sendErrorResponse(res, 404, [
-        {
-          code: "9914",
-          message: "Vasp Endpoint Not Found",
-          type: "VaspEndpointNotFoundException",
-        },
-      ]);
-    }
-
-    return res.status(200).json({
-      message: {
-        message: "Certificate successfully retrieved.",
-        type: "SUCCESS",
+  const vasp = await vaspRepository.findOneBy({ vaspDID });
+  if (!vasp) {
+    return sendErrorResponse(res, 404, [
+      {
+        code: "9914",
+        message: "Vasp Endpoint Not Found",
+        type: "VaspEndpointNotFoundException",
       },
-      messages: null,
-      certInfo: {
-        base64Certificate: vasp.publicKey,
-        vaspDID: vasp.vaspDID,
-      },
-    });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
     ]);
   }
+
+  return res.status(200).json({
+    message: {
+      message: "Certificate successfully retrieved.",
+      type: "SUCCESS",
+    },
+    messages: null,
+    certInfo: {
+      base64Certificate: vasp.publicKey,
+      vaspDID: vasp.vaspDID,
+    },
+  });
 });
 
 // ==========================================
@@ -655,48 +602,42 @@ router.get("/api/v1/ktdm/tr/status", authenticateToken, async (req, res) => {
     ]);
   }
 
-  try {
-    const mainRecord = await travelRuleRepository.findOneBy({
-      id: travelRuleId,
-    });
-    if (!mainRecord) {
-      return sendErrorResponse(res, 404, [
-        {
-          code: "9910",
-          message: "Travel Rule not found",
-          type: "TravelRuleNotFoundExcepiton",
-        },
-      ]);
-    }
-
-    const traceTimeline = await statusHistoryRepository.find({
-      where: { travelRuleId },
-      order: { id: "DESC" },
-    });
-
-    const latestEntry = traceTimeline[0];
-
-    return res.status(200).json({
-      message: null,
-      messages: null,
-      currentStatus: latestEntry
-        ? {
-            status: latestEntry.status,
-            statusDetail: latestEntry.statusDetail,
-            date: latestEntry.changedAt,
-          }
-        : null,
-      history: traceTimeline.map((entry) => ({
-        status: entry.status,
-        statusDetail: entry.statusDetail,
-        date: entry.changedAt,
-      })),
-    });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
+  const mainRecord = await travelRuleRepository.findOneBy({
+    id: travelRuleId,
+  });
+  if (!mainRecord) {
+    return sendErrorResponse(res, 404, [
+      {
+        code: "9910",
+        message: "Travel Rule not found",
+        type: "TravelRuleNotFoundExcepiton",
+      },
     ]);
   }
+
+  const traceTimeline = await statusHistoryRepository.find({
+    where: { travelRuleId },
+    order: { id: "DESC" },
+  });
+
+  const latestEntry = traceTimeline[0];
+
+  return res.status(200).json({
+    message: null,
+    messages: null,
+    currentStatus: latestEntry
+      ? {
+          status: latestEntry.status,
+          statusDetail: latestEntry.statusDetail,
+          date: latestEntry.changedAt,
+        }
+      : null,
+    history: traceTimeline.map((entry) => ({
+      status: entry.status,
+      statusDetail: entry.statusDetail,
+      date: entry.changedAt,
+    })),
+  });
 });
 
 // ==========================================
@@ -759,61 +700,55 @@ router.post("/api/v1/ktdm/tr/cancel", authenticateToken, async (req, res) => {
     ]);
   }
 
-  try {
-    const tr = await travelRuleRepository.findOneBy({ id });
-    if (!tr) {
-      return sendErrorResponse(res, 404, [
-        {
-          code: "9910",
-          message: "Travel Rule not found",
-          type: "TravelRuleNotFoundExcepiton",
-        },
-      ]);
-    }
-
-    // Can only cancel if not yet completed and no blockchain tx initiated
-    if (tr.txHash) {
-      return sendErrorResponse(res, 400, [
-        {
-          code: "9912",
-          message:
-            "Travel Rule can not be cancelled because blockchain transaction has already been initiated.",
-          type: "TravelRuleCanNotBeUpdatedException",
-        },
-      ]);
-    }
-
-    if (tr.lifecycleStatus === "CANCELLED") {
-      return sendErrorResponse(res, 400, [
-        {
-          code: "9912",
-          message: "Travel Rule has already been cancelled.",
-          type: "TravelRuleCanNotBeUpdatedException",
-        },
-      ]);
-    }
-
-    tr.lifecycleStatus = "CANCELLED";
-    await travelRuleRepository.save(tr);
-
-    await saveStatusHistory(id, tr.status, "CANCELLED");
-
-    return sendTubitakResponse(res, 200, {
-      message: {
-        code: "00",
-        message: "Successfully cancelled.",
-        type: "SUCCESS",
+  const tr = await travelRuleRepository.findOneBy({ id });
+  if (!tr) {
+    return sendErrorResponse(res, 404, [
+      {
+        code: "9910",
+        message: "Travel Rule not found",
+        type: "TravelRuleNotFoundExcepiton",
       },
-      status: tr.status,
-      transactionType: "TRAVELRULE",
-      lifecycleStatus: "CANCELLED",
-      id,
-    });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
     ]);
   }
+
+  // Can only cancel if not yet completed and no blockchain tx initiated
+  if (tr.txHash) {
+    return sendErrorResponse(res, 400, [
+      {
+        code: "9912",
+        message:
+          "Travel Rule can not be cancelled because blockchain transaction has already been initiated.",
+        type: "TravelRuleCanNotBeUpdatedException",
+      },
+    ]);
+  }
+
+  if (tr.lifecycleStatus === "CANCELLED") {
+    return sendErrorResponse(res, 400, [
+      {
+        code: "9912",
+        message: "Travel Rule has already been cancelled.",
+        type: "TravelRuleCanNotBeUpdatedException",
+      },
+    ]);
+  }
+
+  tr.lifecycleStatus = "CANCELLED";
+  await travelRuleRepository.save(tr);
+
+  await saveStatusHistory(id, tr.status, "CANCELLED");
+
+  return sendTubitakResponse(res, 200, {
+    message: {
+      code: "00",
+      message: "Successfully cancelled.",
+      type: "SUCCESS",
+    },
+    status: tr.status,
+    transactionType: "TRAVELRULE",
+    lifecycleStatus: "CANCELLED",
+    id,
+  });
 });
 
 router.post("/api/admin/callback-status", async (req, res) => {
@@ -883,74 +818,62 @@ router.post("/api/admin/callback-status", async (req, res) => {
     ]);
   }
 
-  try {
-    return await AppDataSource.transaction(async (tx) => {
-      const travelRuleRepository = tx.getRepository(TravelRule);
-      const statusHistoryRepository = tx.getRepository(StatusHistory);
+  return await AppDataSource.transaction(async (tx) => {
+    const travelRuleRepository = tx.getRepository(TravelRule);
+    const statusHistoryRepository = tx.getRepository(StatusHistory);
 
-      await travelRuleRepository.update(tr.id, {
-        status,
-      });
-      await saveStatusHistory(
-        travelRuleId,
-        status,
-        `ADMIN_CALLBACK_${status}_APPLIED`,
-      );
-
-      const callbackUrl = ORIGINATOR_CALLBACK_URLS[status];
-      if (!callbackUrl) {
-        return sendErrorResponse(res, 400, [
-          {
-            code: "9912",
-            message: `Failed to determine callback url.`,
-            type: "CustomError",
-          },
-        ]);
-      }
-
-      const isFailed = ["REJECTED", "DECLINED"].includes(status);
-      const response = await fetch(callbackUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: travelRuleId,
-          reason: isFailed ? (reason ?? "unknown reason") : undefined,
-        }),
-      });
-
-      await saveStatusHistory(
-        travelRuleId,
-        status,
-        `CALLBACK_${response.ok ? "DELIVERED" : "FAILED"}_HTTP_${response.status}`,
-      );
-
-      return sendTubitakResponse(res, 200, {
-        message: {
-          code: "00",
-          message: "Travel Rule Status Update completed.",
-          type: "SUCCESS",
-          callbackUrl,
-          response: await response.text(),
-        },
-        messages: null,
-      });
+    await travelRuleRepository.update(tr.id, {
+      status,
     });
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
-    ]);
-  }
+    await saveStatusHistory(
+      travelRuleId,
+      status,
+      `ADMIN_CALLBACK_${status}_APPLIED`,
+    );
+
+    const callbackUrl = ORIGINATOR_CALLBACK_URLS[status];
+    if (!callbackUrl) {
+      return sendErrorResponse(res, 400, [
+        {
+          code: "9912",
+          message: `Failed to determine callback url.`,
+          type: "CustomError",
+        },
+      ]);
+    }
+
+    const isFailed = ["REJECTED", "DECLINED"].includes(status);
+    const response = await fetch(callbackUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: travelRuleId,
+        reason: isFailed ? (reason ?? "unknown reason") : undefined,
+      }),
+    });
+
+    await saveStatusHistory(
+      travelRuleId,
+      status,
+      `CALLBACK_${response.ok ? "DELIVERED" : "FAILED"}_HTTP_${response.status}`,
+    );
+
+    return sendTubitakResponse(res, 200, {
+      message: {
+        code: "00",
+        message: "Travel Rule Status Update completed.",
+        type: "SUCCESS",
+        callbackUrl,
+        response: await response.text(),
+      },
+      messages: null,
+    });
+  });
 });
 
 router.get("/api/admin/travel-rules", async (req, res) => {
-  try {
-    const travelRules = await travelRuleRepository.find();
-    return res.status(200).json(travelRules);
-  } catch (err) {
-    return sendErrorResponse(res, 500, [
-      { code: "500", message: "Internal Server Error", type: "ERROR" },
-    ]);
-  }
+  const travelRules = await travelRuleRepository.find();
+  return res.status(200).json(travelRules);
 });
 
 export default router;
