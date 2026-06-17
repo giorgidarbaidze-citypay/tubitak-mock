@@ -181,7 +181,7 @@ router.post(
     try {
       // Validate beneficiary VASP exists
       const targetVasp = await vaspRepository.findOneBy({
-        vaspDID: beneficiaryVASPdid,
+        vaspCode: beneficiaryVASPdid,
       });
       if (!targetVasp) {
         return sendErrorResponse(res, 400, [
@@ -563,7 +563,7 @@ router.get("/api/v1/ktdm/tr/vasp-cert", authenticateToken, async (req, res) => {
     ]);
   }
 
-  const vasp = await vaspRepository.findOneBy({ vaspDID });
+  const vasp = await vaspRepository.findOneBy({ vaspCode: vaspDID });
   if (!vasp) {
     return sendErrorResponse(res, 404, [
       {
@@ -582,7 +582,7 @@ router.get("/api/v1/ktdm/tr/vasp-cert", authenticateToken, async (req, res) => {
     messages: null,
     certInfo: {
       base64Certificate: vasp.publicKey,
-      vaspDID: vasp.vaspDID,
+      vaspDID: vasp.vaspCode,
     },
   });
 });

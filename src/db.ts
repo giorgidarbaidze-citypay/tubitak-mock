@@ -56,31 +56,26 @@ async function seedDatabase() {
   // Seed Mock Turkish Exchanges Data
   const mockVasps = [
     {
-      vaspDID: "did:ethr:0xBtcTurkMockAddress111111111111111",
       vaspCode: "BTCTURK",
       vaspName: "BtcTurk | Kripto",
       publicKey: getRandomPublicKey(),
     },
     {
-      vaspDID: "did:ethr:0xBinanceMockAddress222222222222222",
       vaspCode: "BINANCE",
       vaspName: "Binance",
       publicKey: getRandomPublicKey(),
     },
     {
-      vaspDID: "did:ethr:0xCoinbaseMockAddress333333333333333",
       vaspCode: "COINBASE",
       vaspName: "Coinbase",
       publicKey: getRandomPublicKey(),
     },
     {
-      vaspDID: "did:ethr:0xKrakenMockAddress444444444444444",
       vaspCode: "KRAKEN",
       vaspName: "Kraken",
       publicKey: getRandomPublicKey(),
     },
     {
-      vaspDID: "did:ethr:0xBitfinexMockAddress555555555555555",
       vaspCode: "TETRI",
       vaspName: "Tetri",
       publicKey: getRandomPublicKey(),
@@ -88,10 +83,10 @@ async function seedDatabase() {
   ];
 
   await vaspRepository.delete({
-    vaspDID: In(mockVasps.map((v) => v.vaspDID)),
+    vaspCode: In(mockVasps.map((v) => v.vaspCode)),
   });
   for (const vaspData of mockVasps) {
-    await vaspRepository.upsert(vaspData, ["vaspDID"]);
+    await vaspRepository.upsert(vaspData, ["vaspCode"]);
   }
 
   console.log(
