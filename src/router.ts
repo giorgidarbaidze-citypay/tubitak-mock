@@ -625,13 +625,11 @@ router.get("/api/v1/ktdm/tr/status", authenticateToken, async (req, res) => {
   return res.status(200).json({
     message: null,
     messages: null,
-    currentStatus: latestEntry
-      ? {
-          status: latestEntry.status,
-          statusDetail: latestEntry.statusDetail,
-          date: latestEntry.changedAt,
-        }
-      : null,
+    currentStatus: {
+      status: mainRecord.status,
+      statusDetail: latestEntry?.statusDetail ?? null,
+      date: mainRecord.createdAt,
+    },
     history: traceTimeline.map((entry) => ({
       status: entry.status,
       statusDetail: entry.statusDetail,
