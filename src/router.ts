@@ -552,12 +552,12 @@ router.get("/api/v1/ktdm/tr/vasp-list", authenticateToken, async (req, res) => {
 // 6. RETRIEVING THE VASP CERTIFICATE
 // ==========================================
 router.get("/api/v1/ktdm/tr/vasp-cert", authenticateToken, async (req, res) => {
-  const vaspDID = req.query.vaspDid as string;
+  const vaspDID = req.query.vaspDID as string;
   if (!vaspDID) {
     return sendErrorResponse(res, 400, [
       {
         code: "9900",
-        message: "vaspDid query parameter is required",
+        message: "vaspDID query parameter is required",
         type: "ERROR",
       },
     ]);
@@ -753,6 +753,7 @@ router.post("/api/admin/callback-status", async (req, res) => {
   const travelRuleId = req.query.travelRuleId as string;
   const status = req.query.status as KtdmTravelRuleStatus;
   const reason = req.query.reason as string | undefined;
+  const samples = req.query.samples ? parseInt(req.query.samples) : 1;
   const ORIGINATOR_CALLBACK_URLS: Partial<
     Record<KtdmTravelRuleStatus, string>
   > = {
@@ -793,7 +794,6 @@ router.post("/api/admin/callback-status", async (req, res) => {
   }
 
   const tr = await travelRuleRepository.findOneBy({ id: travelRuleId });
-  console.log("travelRuleId", travelRuleId);
   if (!tr) {
     return sendErrorResponse(res, 404, [
       {
@@ -850,6 +850,23 @@ router.post("/api/admin/callback-status", async (req, res) => {
       }),
     });
 
+    const samplesSent = await Promise.allSettled([
+      ...Array.from({ length: samples - 1 }).map(() =>
+        fetch(callbackUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: travelRuleId,
+            reason: isFailed ? (reason ?? "unknown reason") : undefined,
+          }),
+        }),
+      ),
+    ])
+      .then((results) =>
+        results.filter((result) => result.status === "fulfilled"),
+      )
+      .then((results) => results.length + 1);
+
     await saveStatusHistory(
       travelRuleId,
       status,
@@ -862,6 +879,7 @@ router.post("/api/admin/callback-status", async (req, res) => {
         message: "Travel Rule Status Update completed.",
         type: "SUCCESS",
         callbackUrl,
+        samplesSent,
         response: await response.text(),
       },
       messages: null,

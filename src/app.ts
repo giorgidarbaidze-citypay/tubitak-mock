@@ -20,10 +20,14 @@ function errorHandler(err, req, res, next) {
 }
 
 app.listen(PORT, async () => {
-  await initializeDatabase();
-  await syncMockExpectations();
+  try {
+    await initializeDatabase();
+    await syncMockExpectations();
 
-  console.log(
-    `TÜBİTAK Travel Rule (KTDM) Mock Server listening at http://localhost:${PORT}`,
-  );
+    console.log(
+      `TÜBİTAK Travel Rule (KTDM) Mock Server listening at http://localhost:${PORT}`,
+    );
+  } catch (error) {
+    console.error(error);
+  }
 });
